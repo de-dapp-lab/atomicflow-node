@@ -1,0 +1,12 @@
+# IDE
+.idea
+.vscode
+
+# env
+/.env
+
+# database contianer
+/database/
+
+# rust artifacts
+/target/
