@@ -3,6 +3,7 @@ use dirs;
 use intmax::utils::key_management::memory::{SerializableWalletOnMemory, WalletOnMemory};
 use intmax::utils::key_management::types::Wallet;
 use intmax_rollup_interface::intmax_zkp_core::zkdsa::account::Address;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -59,5 +60,19 @@ impl WalletRepository {
         };
         let encoded_wallet = serde_json::to_string(&raw)?;
         Ok(encoded_wallet)
+    }
+
+    pub fn decode_wallet(&self, encoded_wallet: &str) -> anyhow::Result<WalletOnMemory> {
+        let raw: SerializableWalletOnMemory = serde_json::from_str(encoded_wallet)?;
+        let mut result = HashMap::new();
+        for value in raw.data.into_iter() {
+            result.insert(value.account.address, value);
+        }
+
+        Ok(WalletOnMemory {
+            data: result,
+            default_account: raw.default_account,
+            wallet_file_path: self.wallet_file_path.clone(),
+        })
     }
 }

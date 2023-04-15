@@ -41,4 +41,10 @@ impl PayerService {
 
         Ok(())
     }
+
+    // pub async fn get_token_amount(&self, evm_address: &str, token_amount: &str) {
+    //     if let Some(payer) = self.payer_repo.get_by_evm_address(evm_address).await? {
+    //         payer.assets
+    //     }
+    // }
 }

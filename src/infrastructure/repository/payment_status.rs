@@ -23,7 +23,7 @@ impl PaymentStatusRepository {
     }
 
     pub async fn get_all(&self) -> anyhow::Result<Vec<PaymentStatus>> {
-        let payer_address = "0x3d68111635a765a6";
+        let payer_address = "0xe1c981f75afcc2a7";
 
         let payment_status = vec![
             PaymentStatus::new(

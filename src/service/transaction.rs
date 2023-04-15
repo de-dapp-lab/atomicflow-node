@@ -1,15 +1,16 @@
 extern crate intmax;
 
 use crate::domain::error::ServiceError;
+use crate::domain::payer::Payer;
 use crate::domain::plan::Plan;
 use crate::domain::transaction::Transaction;
 use crate::infrastructure::external_service::intmax::IntmaxService;
+use crate::infrastructure::repository::payer::PayerRepository;
 use crate::infrastructure::repository::payment_status::PaymentStatusRepository;
 use crate::infrastructure::repository::plan::PlanRepository;
 use crate::infrastructure::repository::transaction::TransactionRepository;
 use crate::infrastructure::repository::wallet::WalletRepository;
 use chrono::{DateTime, Local};
-use intmax::utils::key_management::memory::SerializableWalletOnMemory;
 use std::collections::HashMap;
 use tracing::debug;
 use uuid::Uuid;
@@ -20,6 +21,7 @@ pub struct TransactionService {
     transaction_repo: TransactionRepository,
     plan_repo: PlanRepository,
     l2_service: IntmaxService,
+    payer_repo: PayerRepository,
 
     //Temp
     wallet_repo: WalletRepository,
@@ -31,6 +33,7 @@ impl TransactionService {
         transaction_repo: TransactionRepository,
         plan_repo: PlanRepository,
         l2_service: IntmaxService,
+        payer_repo: PayerRepository,
         wallet_repo: WalletRepository,
     ) -> Self {
         Self {
@@ -38,6 +41,7 @@ impl TransactionService {
             transaction_repo,
             plan_repo,
             l2_service,
+            payer_repo,
             wallet_repo,
         }
     }
@@ -65,25 +69,23 @@ impl TransactionService {
     }
 
     pub async fn bulk_transfer(&self) -> anyhow::Result<()> {
-        // TODO: get encoded wallet from DB
-        let wallet = self.wallet_repo.get_wallet()?;
-        let raw = SerializableWalletOnMemory {
-            data: wallet.data.values().cloned().collect::<Vec<_>>(),
-            default_account: wallet.default_account,
-        };
-        let assets = serde_json::to_string(&raw).unwrap();
-
         let payments = self.payment_status_repo.get_all().await?;
-        // let payments_hashmap: HashMap<String, PaymentStatus> = plans
-        //     .into_iter()
-        //     .map(|p| (format!("{:}{:}", p.plan_key, p.plan_key), p.clone()))
-        //     .collect();
+
+        // TODO: multiple payer
+        let mut payer: Payer;
+        if let Some(p) = self
+            .payer_repo
+            .get_by_address(&payments[0].payer_address)
+            .await?
+        {
+            payer = p
+        } else {
+            anyhow::bail!("Payer is not found")
+        }
+
+        let mut wallet = self.wallet_repo.decode_wallet(&payer.assets)?;
 
         let plans = self.plan_repo.get_all().await?;
-        // let plan_hashmap: HashMap<String, Plan> = plans
-        //     .into_iter()
-        //     .map(|p| (&p.plan_key, p.clone()))
-        //     .collect();
 
         let mut plan_hashmap: HashMap<String, Plan> = HashMap::new();
         for p in plans {
@@ -118,12 +120,15 @@ impl TransactionService {
         let bulk_mint_result = self
             .l2_service
             .bulk_transfer(
-                &assets,
+                &mut wallet,
                 &transactions[0].payer_address,
                 transactions.to_vec(),
             )
             .await;
 
+        let assets = self.wallet_repo.encode_wallet(wallet)?;
+        payer.update_assets(assets);
+        self.payer_repo.update_asset(payer).await?;
         // let bulk_mint_result: anyhow::Result<()> = Ok(());
         // let bulk_mint_result: anyhow::Result<()> = Err(anyhow!("test"));
 

@@ -43,7 +43,7 @@ impl PlanRepository {
 
         let receiver_address = "0x1909a02279691d0a";
 
-        // TODO: fix
+        // TODO: fetch from contract
         let plan = match plan_key {
             "1" => Some(Plan::new(
                 "1".to_string(),
@@ -82,7 +82,7 @@ impl PlanRepository {
         Ok(plan)
     }
 
-    // TODO: fix
+    // TODO: fetch from contract
     pub async fn get_all(&self) -> anyhow::Result<Vec<Plan>> {
         let receiver_address = "0x1909a02279691d0a";
 

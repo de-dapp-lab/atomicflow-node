@@ -2,21 +2,21 @@ use crate::infrastructure::external_service::contract::client::Client;
 use crate::infrastructure::external_service::contract::status::StatusContract;
 use crate::infrastructure::external_service::intmax::IntmaxService;
 use crate::infrastructure::external_service::postgres::DB;
+use crate::infrastructure::repository::payer::PayerRepository;
 use crate::infrastructure::repository::payment_status::PaymentStatusRepository;
 use crate::infrastructure::repository::plan::PlanRepository;
 use crate::infrastructure::repository::transaction::TransactionRepository;
 use crate::infrastructure::repository::wallet::WalletRepository;
+use crate::presentation::controller::payer::PayerController;
 use crate::presentation::controller::transaction::TransactionController;
+use crate::service::payer::PayerService;
 use crate::service::transaction::TransactionService;
 use intmax::service::builder::ServiceBuilder;
-use crate::infrastructure::repository::payer::PayerRepository;
-use crate::presentation::controller::payer::PayerController;
-use crate::service::payer::PayerService;
 
 #[derive(Clone)]
 pub struct Container {
     pub transaction_controller: TransactionController,
-    pub payer_controller:PayerController
+    pub payer_controller: PayerController,
 }
 
 impl Container {
@@ -57,9 +57,14 @@ impl Container {
             transaction_repo.clone(),
             plan_repo.clone(),
             intmax_service.clone(),
+            payer_repo.clone(),
             wallet_repo.clone(),
         );
-        let payer_service = PayerService::new(intmax_service.clone(),plan_repo.clone(),payer_repo.clone());
+        let payer_service = PayerService::new(
+            intmax_service.clone(),
+            plan_repo.clone(),
+            payer_repo.clone(),
+        );
 
         // Presentation
         // Controller(Presentation)
@@ -68,7 +73,7 @@ impl Container {
 
         Ok(Container {
             transaction_controller,
-            payer_controller
+            payer_controller,
         })
     }
 }
