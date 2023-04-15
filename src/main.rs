@@ -1,5 +1,5 @@
 use atomicflow_operator::container::Container;
-use atomicflow_operator::presentation::controller::payer::create_payer;
+use atomicflow_operator::presentation::controller::payer::{create_payer, get_token_amount};
 use atomicflow_operator::presentation::controller::transaction::{
     bulk_transfer, get_latest_transaction,
 };
@@ -33,6 +33,7 @@ async fn main() {
         .route("/tx", post(bulk_transfer))
         .route("/tx/latest", get(get_latest_transaction))
         .route("/payers", post(create_payer))
+        .route("/payer/tokens", get(get_token_amount))
         .with_state(container);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
