@@ -9,10 +9,14 @@ use crate::infrastructure::repository::wallet::WalletRepository;
 use crate::presentation::controller::transaction::TransactionController;
 use crate::service::transaction::TransactionService;
 use intmax::service::builder::ServiceBuilder;
+use crate::infrastructure::repository::payer::PayerRepository;
+use crate::presentation::controller::payer::PayerController;
+use crate::service::payer::PayerService;
 
 #[derive(Clone)]
 pub struct Container {
     pub transaction_controller: TransactionController,
+    pub payer_controller:PayerController
 }
 
 impl Container {
@@ -45,7 +49,7 @@ impl Container {
         let transaction_repo = TransactionRepository::new(db.clone());
         let payment_status_repo = PaymentStatusRepository::new(status_contract.clone());
         let plan_repo = PlanRepository::new(status_contract.clone());
-
+        let payer_repo = PayerRepository::new(db.clone());
 
         // Application service
         let transaction_service = TransactionService::new(
@@ -55,13 +59,16 @@ impl Container {
             intmax_service.clone(),
             wallet_repo.clone(),
         );
+        let payer_service = PayerService::new(intmax_service.clone(),plan_repo.clone(),payer_repo.clone());
 
         // Presentation
         // Controller(Presentation)
         let transaction_controller = TransactionController::new(transaction_service.clone());
+        let payer_controller = PayerController::new(payer_service.clone());
 
         Ok(Container {
             transaction_controller,
+            payer_controller
         })
     }
 }

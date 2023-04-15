@@ -1,9 +1,10 @@
-use axum::routing::get;
-use axum::{routing::post, Router};
 use atomicflow_operator::container::Container;
+use atomicflow_operator::presentation::controller::payer::create_payer;
 use atomicflow_operator::presentation::controller::transaction::{
     bulk_transfer, get_latest_transaction,
 };
+use axum::routing::get;
+use axum::{routing::post, Router};
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 
@@ -31,6 +32,7 @@ async fn main() {
     let app = Router::new()
         .route("/tx", post(bulk_transfer))
         .route("/tx/latest", get(get_latest_transaction))
+        .route("/payers", post(create_payer))
         .with_state(container);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

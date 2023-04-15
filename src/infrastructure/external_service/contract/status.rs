@@ -10,7 +10,7 @@ pub struct StatusContract {
 
 impl StatusContract {
     pub async fn new(client: Client) -> anyhow::Result<Self> {
-        let abi: Abi = serde_json::from_str(include_str!("abi/Status.json"))?;
+        let abi: Abi = serde_json::from_str(include_str!("abi/SubscriptionManager.json"))?;
 
         let contract_address = dotenvy::var("STATUS_CONTRACT_ADDRESS")?;
         let contract =
