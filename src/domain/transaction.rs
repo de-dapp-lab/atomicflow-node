@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use serde::Serialize;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Transaction {
     pub transaction_id: String,
     pub payer_address: String,

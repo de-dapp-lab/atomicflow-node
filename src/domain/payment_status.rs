@@ -3,21 +3,30 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct PaymentStatus {
-    pub plan_id: String,
+    pub plan_key: String,
     pub payer_address: String,
-    pub latest_tx_fail_at: Option<DateTime<Local>>,
+    pub payer_evm_address: String,
+    pub start_time: DateTime<Local>,
+    pub status: bool,
+    pub member_count: u64,
 }
 
 impl PaymentStatus {
     pub fn new(
-        plan_id: String,
+        plan_key: String,
         payer_address: String,
-        latest_tx_fail_at: Option<DateTime<Local>>,
+        payer_evm_address: String,
+        start_time: DateTime<Local>,
+        status: bool,
+        member_count: u64,
     ) -> Self {
         PaymentStatus {
-            plan_id,
+            plan_key,
             payer_address,
-            latest_tx_fail_at,
+            payer_evm_address,
+            start_time,
+            status,
+            member_count,
         }
     }
 }

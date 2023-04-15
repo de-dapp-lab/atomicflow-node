@@ -62,6 +62,34 @@ impl TransactionRepository {
         Self { db }
     }
 
+    pub async fn bulk_create(&self, transactions: Vec<Transaction>) -> anyhow::Result<()> {
+        let pool = self.db.0.clone();
+
+        let  query_str = "INSERT INTO transactions(transaction_id, payer_address, receiver_address, token_address, amount, cumulative_amount, created_at) VALUES "
+            .to_owned()
+            + &(0..transactions.len())
+            .map(|i| format!("(${}, ${}, ${}, ${}, ${}::bigint, ${}::bigint, ${}::timestamp)", i * 7 + 1, i * 7 + 2,i * 7 + 3,i * 7 + 4,i * 7 + 5,i * 7 + 6,i * 7 + 7,))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let mut query = sqlx::query(&query_str);
+
+        for tx in transactions {
+            query = query
+                .bind(tx.transaction_id)
+                .bind(tx.payer_address)
+                .bind(tx.receiver_address)
+                .bind(tx.token_address)
+                .bind(tx.amount.to_string())
+                .bind(tx.cumulative_amount.to_string())
+                .bind(tx.created_at.to_string())
+        }
+
+        query.execute(&*pool).await?;
+
+        Ok(())
+    }
+
     pub async fn save(&self, transaction: Transaction) -> anyhow::Result<()> {
         let pool = self.db.0.clone();
 

@@ -22,7 +22,7 @@ watch:
 
 .PHONY: start
 start:
-	./target/release/dapp-lab-server-proto
+	./target/release/atomicflow-operator
 
 .PHONY: schedule
 schedule:

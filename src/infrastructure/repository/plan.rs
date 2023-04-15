@@ -1,11 +1,9 @@
 use crate::domain::plan::Plan;
 use crate::infrastructure::external_service::contract::status::StatusContract;
-use ethers::core::k256::U256;
-use tracing::debug;
 
 #[derive(Clone)]
 pub struct PlanRepository {
-    contract: StatusContract,
+    pub contract: StatusContract,
 }
 
 // struct RawPlan {
@@ -43,10 +41,34 @@ impl PlanRepository {
         //
         // debug!("res:{:?}", res);
 
+        let receiver_address = "0x1909a02279691d0a";
+
+        // TODO: fix
         let plan = match plan_key {
-            "1" => Some(Plan::new(plan_key.to_string(), "".to_string(), 8, 5)),
-            "2" => Some(Plan::new(plan_key.to_string(), "".to_string(), 10, 10)),
-            "3" => Some(Plan::new(plan_key.to_string(), "".to_string(), 15, 20)),
+            "1" => Some(Plan::new(
+                "1".to_string(),
+                receiver_address.to_string(),
+                "Basic".to_string(),
+                "0".to_string(),
+                8,
+                5,
+            )),
+            "2" => Some(Plan::new(
+                "2".to_string(),
+                receiver_address.to_string(),
+                "Pro".to_string(),
+                "0".to_string(),
+                10,
+                10,
+            )),
+            "3" => Some(Plan::new(
+                "3".to_string(),
+                receiver_address.to_string(),
+                "Enterprise".to_string(),
+                "0".to_string(),
+                15,
+                20,
+            )),
             _ => None,
         };
 
@@ -60,11 +82,35 @@ impl PlanRepository {
         Ok(plan)
     }
 
+    // TODO: fix
     pub async fn get_all(&self) -> anyhow::Result<Vec<Plan>> {
+        let receiver_address = "0x1909a02279691d0a";
+
         let plans = vec![
-            Plan::new("1".to_string(), "".to_string(), 8, 5),
-            Plan::new("2".to_string(), "".to_string(), 10, 10),
-            Plan::new("3".to_string(), "".to_string(), 15, 20),
+            Plan::new(
+                "1".to_string(),
+                receiver_address.to_string(),
+                "Basic".to_string(),
+                "0".to_string(),
+                8,
+                5,
+            ),
+            Plan::new(
+                "2".to_string(),
+                receiver_address.to_string(),
+                "Pro".to_string(),
+                "0".to_string(),
+                10,
+                10,
+            ),
+            Plan::new(
+                "3".to_string(),
+                receiver_address.to_string(),
+                "Enterprise".to_string(),
+                "0".to_string(),
+                15,
+                20,
+            ),
         ];
         Ok(plans)
     }

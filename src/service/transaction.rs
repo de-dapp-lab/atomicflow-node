@@ -1,5 +1,7 @@
 extern crate intmax;
+
 use crate::domain::error::ServiceError;
+use crate::domain::plan::Plan;
 use crate::domain::transaction::Transaction;
 use crate::infrastructure::external_service::intmax::IntmaxService;
 use crate::infrastructure::repository::payment_status::PaymentStatusRepository;
@@ -7,10 +9,8 @@ use crate::infrastructure::repository::plan::PlanRepository;
 use crate::infrastructure::repository::transaction::TransactionRepository;
 use crate::infrastructure::repository::wallet::WalletRepository;
 use chrono::{DateTime, Local};
-use ethers::abi::{encode_packed, Token};
-use ethers::types::U256;
-use ethers::utils::keccak256;
 use intmax::utils::key_management::memory::SerializableWalletOnMemory;
+use std::collections::HashMap;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -73,28 +73,55 @@ impl TransactionService {
         };
         let assets = serde_json::to_string(&raw).unwrap();
 
-        // TODO: get transfers in condition
-        let payer_address = "0x3d68111635a765a6";
-        let receiver_address = "0x1909a02279691d0a";
-        let amount = 100;
-        let token_address = &0u8.to_string();
-        let plan_id = "1";
-        let transaction_id = Uuid::new_v4();
-        let now: DateTime<Local> = Local::now();
+        let payments = self.payment_status_repo.get_all().await?;
+        // let payments_hashmap: HashMap<String, PaymentStatus> = plans
+        //     .into_iter()
+        //     .map(|p| (format!("{:}{:}", p.plan_key, p.plan_key), p.clone()))
+        //     .collect();
 
-        let transactions = vec![Transaction::new(
-            transaction_id.to_string(),
-            payer_address.to_string(),
-            receiver_address.to_string(),
-            token_address.to_string(),
-            amount,
-            0,
-            now,
-        )];
+        let plans = self.plan_repo.get_all().await?;
+        // let plan_hashmap: HashMap<String, Plan> = plans
+        //     .into_iter()
+        //     .map(|p| (&p.plan_key, p.clone()))
+        //     .collect();
+
+        let mut plan_hashmap: HashMap<String, Plan> = HashMap::new();
+        for p in plans {
+            plan_hashmap.insert(p.plan_key.to_string(), p.clone());
+        }
+
+        let now: DateTime<Local> = Local::now();
+        let mut transactions = vec![];
+        payments
+            .into_iter()
+            .try_for_each(|tx| -> anyhow::Result<()> {
+                let transaction_id = Uuid::new_v4();
+                let plan = plan_hashmap.get(&tx.plan_key);
+                if let Some(plan) = plan {
+                    let tx = Transaction::new(
+                        transaction_id.to_string(),
+                        tx.payer_address.to_string(),
+                        plan.receiver_address.to_string(),
+                        plan.token_address.to_string(),
+                        plan.amount_per_month,
+                        0,
+                        now,
+                    );
+
+                    transactions.push(tx);
+                    Ok(())
+                } else {
+                    anyhow::bail!("")
+                }
+            })?;
 
         let bulk_mint_result = self
             .l2_service
-            .bulk_transfer(&assets, payer_address, transactions)
+            .bulk_transfer(
+                &assets,
+                &transactions[0].payer_address,
+                transactions.to_vec(),
+            )
             .await;
 
         // let bulk_mint_result: anyhow::Result<()> = Ok(());
@@ -105,31 +132,11 @@ impl TransactionService {
         match bulk_mint_result {
             Ok(..) => {
                 // Get latest tx and sum calc cumulative amount
-                let mut cumulative_amount = i64::try_from(amount)?;
-                if let Some(latest_tx) = self
-                    .transaction_repo
-                    .get_latest(
-                        &payer_address.to_string(),
-                        &receiver_address.to_string(),
-                        token_address,
-                    )
-                    .await?
-                {
-                    cumulative_amount += i64::try_from(latest_tx.cumulative_amount)?
-                }
+                // TODO:fix amount
 
-                let transaction = Transaction::new(
-                    transaction_id.to_string(),
-                    payer_address.to_string(),
-                    receiver_address.to_string(),
-                    token_address.to_string(),
-                    amount,
-                    u64::try_from(cumulative_amount)?,
-                    now,
-                );
-
-                // Save transaction history
-                self.transaction_repo.save(transaction).await?;
+                self.transaction_repo
+                    .bulk_create(transactions.to_vec())
+                    .await?;
 
                 Ok(())
             }
@@ -143,15 +150,15 @@ impl TransactionService {
                                 // TODO: add queue and run call to contract
 
                                 // Save status to contract
-                                let payment_key = keccak256(encode_packed(&[
-                                    Token::String(plan_id.to_string()),
-                                    Token::String(payer_address.to_string()),
-                                ])?);
-
-                                let payment_key = U256::from(payment_key);
-                                self.payment_status_repo
-                                    .save_state(payment_key, false)
-                                    .await?;
+                                // let payment_key = keccak256(encode_packed(&[
+                                //     Token::String(plan_key.to_string()),
+                                //     Token::String(payer_address.to_string()),
+                                // ])?);
+                                //
+                                // let payment_key = U256::from(payment_key);
+                                // self.payment_status_repo
+                                //     .save_state(payment_key, false)
+                                //     .await?;
                                 Ok(())
                             }
                         }
