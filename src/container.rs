@@ -62,8 +62,8 @@ impl Container {
         );
         let payer_service = PayerService::new(
             intmax_service.clone(),
-            plan_repo.clone(),
             payer_repo.clone(),
+            wallet_repo.clone(),
         );
 
         // Presentation

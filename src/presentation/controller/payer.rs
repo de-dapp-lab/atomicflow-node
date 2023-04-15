@@ -1,11 +1,11 @@
 use crate::container::Container;
 use crate::service::payer::PayerService;
-use axum::extract::State;
-use axum::http::{ StatusCode};
+use axum::extract::{Query, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_macros::debug_handler;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
 #[derive(Clone)]
@@ -19,11 +19,20 @@ impl PayerController {
     }
 }
 
-// #[derive(Debug, Serialize, Validate)]
 #[derive(Deserialize)]
 pub struct CreatePayerRequest {
-    pub plan_key: String,
-    pub evm_address:String
+    pub evm_address: String,
+}
+
+#[derive(Deserialize)]
+pub struct GetTokenAmountQuery {
+    pub evm_address: String,
+    pub token_address: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GetTokenAmountResponse {
+    pub amount: String,
 }
 
 #[debug_handler]
@@ -34,9 +43,32 @@ pub async fn create_payer(
     let res = container
         .payer_controller
         .payer_service
-        .create(&req.plan_key, &req.evm_address)
+        .create(&req.evm_address)
         .await
         .map(|_| StatusCode::OK)
+        .map_err(|err| {
+            error!("Unexpected error: {:?}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        });
+    res
+}
+
+#[debug_handler]
+pub async fn get_token_amount(
+    State(container): State<Container>,
+    Query(query): Query<GetTokenAmountQuery>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let res = container
+        .payer_controller
+        .payer_service
+        .get_token_amount(&query.evm_address, &query.token_address)
+        .await
+        .map(|result| {
+            (
+                StatusCode::OK,
+                Json(GetTokenAmountResponse { amount: result }),
+            )
+        })
         .map_err(|err| {
             error!("Unexpected error: {:?}", err);
             StatusCode::INTERNAL_SERVER_ERROR

@@ -11,7 +11,9 @@ use crate::infrastructure::repository::plan::PlanRepository;
 use crate::infrastructure::repository::transaction::TransactionRepository;
 use crate::infrastructure::repository::wallet::WalletRepository;
 use chrono::{DateTime, Local};
+use intmax_rollup_interface::intmax_zkp_core::zkdsa::account::Address;
 use std::collections::HashMap;
+use std::str::FromStr;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -84,6 +86,14 @@ impl TransactionService {
         }
 
         let mut wallet = self.wallet_repo.decode_wallet(&payer.assets)?;
+        let address = Address::from_str(&payer.address)?;
+        if let Some(user_state) = wallet.data.get_mut(&address) {
+            self.l2_service
+                .sync_sent_transaction(user_state, address)
+                .await?;
+        } else {
+            anyhow::bail!("Cannot load user state")
+        }
 
         let plans = self.plan_repo.get_all().await?;
 
