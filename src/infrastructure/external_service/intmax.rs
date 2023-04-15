@@ -3,15 +3,16 @@ use crate::domain::transaction::Transaction;
 use crate::infrastructure::repository::wallet::WalletRepository;
 use intmax::service::builder::ServiceBuilder;
 use intmax::service::functions::bulk_mint;
-use intmax::utils::key_management::memory::{SerializableWalletOnMemory, WalletOnMemory};
+use intmax::utils::key_management::memory::{UserState, WalletOnMemory};
 use intmax::utils::key_management::types::Wallet;
 use intmax_rollup_interface::intmax_zkp_core::plonky2::plonk::config::{
     GenericConfig, PoseidonGoldilocksConfig,
 };
 use intmax_rollup_interface::intmax_zkp_core::sparse_merkle_tree::goldilocks_poseidon::WrappedHashOut;
+use intmax_rollup_interface::intmax_zkp_core::sparse_merkle_tree::node_data::NodeData;
+use intmax_rollup_interface::intmax_zkp_core::sparse_merkle_tree::root_data::RootData;
 use intmax_rollup_interface::intmax_zkp_core::transaction::asset::{ContributedAsset, TokenKind};
 use intmax_rollup_interface::intmax_zkp_core::zkdsa::account::{Account, Address};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -35,22 +36,10 @@ impl IntmaxService {
 
     pub async fn bulk_transfer(
         &self,
-        assets: &str,
+        wallet: &mut WalletOnMemory,
         payer_address: &str,
         transactions: Vec<Transaction>,
     ) -> anyhow::Result<()> {
-        let raw: SerializableWalletOnMemory = serde_json::from_str(assets)?;
-        let mut result = HashMap::new();
-        for value in raw.data.into_iter() {
-            result.insert(value.account.address, value);
-        }
-
-        let mut wallet = WalletOnMemory {
-            data: result,
-            default_account: raw.default_account,
-            wallet_file_path: self.wallet_repo.wallet_file_path.clone(),
-        };
-
         let payer_address = Address::from_str(payer_address)?;
 
         let mut distribution_list = vec![];
@@ -72,7 +61,7 @@ impl IntmaxService {
 
         let bulk_mint_result = bulk_mint(
             &self.intmax_service_builder,
-            &mut wallet,
+            wallet,
             payer_address,
             distribution_list,
             false,
@@ -102,5 +91,19 @@ impl IntmaxService {
 
         let encode_wallet = self.wallet_repo.encode_wallet(wallet)?;
         Ok((encode_wallet, account.address.to_string()))
+    }
+
+    pub async fn sync_sent_transaction<
+        D: NodeData<WrappedHashOut<F>, WrappedHashOut<F>, WrappedHashOut<F>> + Clone,
+        R: RootData<WrappedHashOut<F>> + Clone,
+    >(
+        &self,
+        user_state: &mut UserState<D, R>,
+        user_address: Address<F>,
+    ) -> anyhow::Result<()> {
+        self.intmax_service_builder
+            .sync_sent_transaction(user_state, user_address)
+            .await;
+        Ok(())
     }
 }

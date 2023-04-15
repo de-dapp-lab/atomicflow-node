@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.10"
-intmax = { git = "https://github.com/InternetMaximalism/intmax-rollup-cli.git", rev = "7078b5880fd78e306c9e2b26b3c2ffc7a6ab2575" }
+intmax = { git = "https://github.com/de-dapp-lab/intmax-rollup-cli.git", rev = "25bdc752392088e0700d5bd472b4ed0bcfd857d1" }
 intmax-rollup-interface = { git = "https://github.com/InternetMaximalism/intmax-rollup-interface", rev = "5d71b62" }
 serde = { version = "1.0.153", features = ["derive"] }
 serde_json = "1.0.94"
@@ -19,7 +19,7 @@ anyhow = "1.0.69"
 dotenvy = "0.15.6"
 dirs = "4.0.0"
 axum-macros = "0.3.5"
-sqlx = { version = "0.6.2", features = ["postgres", "runtime-tokio-native-tls", "chrono"] }
+sqlx = { version = "0.6.2", features = ["postgres", "runtime-tokio-native-tls", "chrono", "offline"] }
 chrono = { version = "0.4.24", features = ["serde"] }
 uuid = { version = "1.3.0", features = ["v4"] }
 ethers = "2.0.1"
@@ -33,4 +33,3 @@ default = ["parallel", "tokio/rt-multi-thread"]
 verbose = []
 parallel = ["intmax-rollup-interface/parallel"]
 wasm = []
-
